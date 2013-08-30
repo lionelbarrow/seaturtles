@@ -1,3 +1,3 @@
 ### Seaturtles
 
-An improvised RAFT implementation.
+The best way to improvise a RAFT.
