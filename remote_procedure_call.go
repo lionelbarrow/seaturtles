@@ -1,11 +1,11 @@
 package seaturtles
 
 type AppendEntryCall struct {
-  LeaderId int
-  Term int
+	LeaderId int
+	Term     int
 }
 
 type AppendEntryResponse struct {
-  Term int
-  Success bool
+	Term    int
+	Success bool
 }
