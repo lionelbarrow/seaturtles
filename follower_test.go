@@ -2,9 +2,14 @@ package seaturtles
 
 import "testing"
 
-func TestAppendEntriesRejectsEntryLowTermCalls(t *testing.T) {
-	follower := NewFollower(1, 5)
+func createFollower(id, term int) *Follower {
+	follower := NewFollower(id, term)
 	follower.Log = map[int]int{1: 1}
+	return follower
+}
+
+func TestAppendEntriesRejectsEntryLowTermCalls(t *testing.T) {
+	follower := createFollower(1, 5)
 	appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 3, PreviousLogIndex: 1, PreviousLogTerm: 1}
 
 	response := follower.AppendEntry(appendEntryCall)
@@ -15,8 +20,7 @@ func TestAppendEntriesRejectsEntryLowTermCalls(t *testing.T) {
 }
 
 func TestAppendEntriesSendsCurrentTermWhenRejecting(t *testing.T) {
-	follower := NewFollower(1, 5)
-	follower.Log = map[int]int{1: 1}
+	follower := createFollower(1, 5)
 	appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 3, PreviousLogIndex: 1, PreviousLogTerm: 1}
 
 	response := follower.AppendEntry(appendEntryCall)
@@ -27,8 +31,7 @@ func TestAppendEntriesSendsCurrentTermWhenRejecting(t *testing.T) {
 }
 
 func TestAppendEntriesSavesHigherTermCalls(t *testing.T) {
-	follower := NewFollower(1, 1)
-	follower.Log = map[int]int{1: 1}
+	follower := createFollower(1, 1)
 	appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 2, PreviousLogIndex: 1, PreviousLogTerm: 1}
 
 	follower.AppendEntry(appendEntryCall)
@@ -39,8 +42,7 @@ func TestAppendEntriesSavesHigherTermCalls(t *testing.T) {
 }
 
 func TestAppendEntriesReturnsGreatestKnownTerm(t *testing.T) {
-	follower := NewFollower(1, 1)
-	follower.Log = map[int]int{1: 1, 2: 2}
+	follower := createFollower(1, 1)
 	appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 2, PreviousLogIndex: 1, PreviousLogTerm: 1}
 
 	response := follower.AppendEntry(appendEntryCall)

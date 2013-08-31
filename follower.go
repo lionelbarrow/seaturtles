@@ -12,17 +12,21 @@ type Follower struct {
 
 func (f *Follower) AppendEntry(call AppendEntryCall) AppendEntryResponse {
 	if call.Term < f.Term {
-		return AppendEntryResponse{Term: f.Term, Success: false}
+		return f.appendEntryResponse(false)
 	}
 
 	storedTerm, present := f.Log[call.PreviousLogIndex]
 	if !present {
-		return AppendEntryResponse{Term: f.Term, Success: false}
+		return f.appendEntryResponse(false)
 	} else if storedTerm != call.PreviousLogTerm {
-		return AppendEntryResponse{Term: f.Term, Success: false}
+		return f.appendEntryResponse(false)
 	}
 
 	f.Term = call.Term
 
-	return AppendEntryResponse{Term: f.Term, Success: true}
+	return f.appendEntryResponse(false)
+}
+
+func (f *Follower) appendEntryResponse(success bool) AppendEntryResponse {
+	return AppendEntryResponse{Term: f.Term, Success: success}
 }
