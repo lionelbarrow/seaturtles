@@ -1,3 +1,3 @@
 ### Seaturtles
 
-The best way to improvise a RAFT.
+The best way to improvise a Raft.
