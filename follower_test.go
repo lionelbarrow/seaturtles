@@ -1,6 +1,9 @@
 package seaturtles
 
-import "testing"
+import (
+	e "github.com/lionelbarrow/examples"
+	"testing"
+)
 
 func createFollower(id, term int) *Follower {
 	follower := NewFollower(id, term)
@@ -8,37 +11,40 @@ func createFollower(id, term int) *Follower {
 	return follower
 }
 
-func TestAppendEntriesRejectsEntryLowTermCalls(t *testing.T) {
-	follower := createFollower(1, 5)
-	appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 3, PreviousLogIndex: 1, PreviousLogTerm: 1}
+func TestAppendEntriesWithBadClient(t *testing.T) {
+	e.Describe("rejected requests", t,
+		e.It("rejects requests with an old term", func(ex *e.Example) {
+			follower := createFollower(1, 5)
+			appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 3, PreviousLogIndex: 1, PreviousLogTerm: 1}
 
-	response := follower.AppendEntry(appendEntryCall)
+			response := follower.AppendEntry(appendEntryCall)
 
-	if response.Success {
-		t.Error("Follower accepted AppendEntry call with lower term than its own.")
-	}
-}
+			ex.Expect(response.Success).ToBeFalse()
+			ex.Expect(response.Term).ToEqual(5)
+		}),
 
-func TestAppendEntriesSendsCurrentTermWhenRejecting(t *testing.T) {
-	follower := createFollower(1, 5)
-	appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 3, PreviousLogIndex: 1, PreviousLogTerm: 1}
+		e.It("rejects requests with a low previous log index", func(ex *e.Example) {
+			follower := createFollower(1, 2)
+			follower.Log = map[int]int{1: 1, 2: 2}
+			appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 2, PreviousLogIndex: 2, PreviousLogTerm: 1}
 
-	response := follower.AppendEntry(appendEntryCall)
+			response := follower.AppendEntry(appendEntryCall)
 
-	if response.Term != 5 {
-		t.Error("Follower did not respond with its own term when rejecting a call")
-	}
-}
+			ex.Expect(response.Success).ToBeFalse()
+			ex.Expect(response.Term).ToEqual(2)
+		}),
 
-func TestAppendEntriesSavesHigherTermCalls(t *testing.T) {
-	follower := createFollower(1, 1)
-	appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 2, PreviousLogIndex: 1, PreviousLogTerm: 1}
+		e.It("rejects requests with a previous log index and non-matching previous log term", func(ex *e.Example) {
+			follower := createFollower(1, 1)
+			follower.Log = map[int]int{1: 1, 2: 1}
+			appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 2, PreviousLogIndex: 3, PreviousLogTerm: 1}
 
-	follower.AppendEntry(appendEntryCall)
+			response := follower.AppendEntry(appendEntryCall)
 
-	if follower.Term != 2 {
-		t.Error("Follower did not update its own term after receiving high term call.")
-	}
+			ex.Expect(response.Success).ToBeFalse()
+			ex.Expect(response.Term).ToEqual(1)
+		}),
+	)
 }
 
 func TestAppendEntriesReturnsGreatestKnownTerm(t *testing.T) {
@@ -49,29 +55,5 @@ func TestAppendEntriesReturnsGreatestKnownTerm(t *testing.T) {
 
 	if response.Term != 2 {
 		t.Error("Follower response did not update to include new term")
-	}
-}
-
-func TestAppendEntriesRejectsIfPreviousLogIndexIsTooLow(t *testing.T) {
-	follower := NewFollower(1, 2)
-	follower.Log = map[int]int{1: 1, 2: 2}
-	appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 2, PreviousLogIndex: 2, PreviousLogTerm: 1}
-
-	response := follower.AppendEntry(appendEntryCall)
-
-	if response.Success {
-		t.Error("Follower accepted AppendEntry call where PreviousLogIndex's Term was below recorded Term.")
-	}
-}
-
-func TestAppendEntriesRejectsIfLogDoesNotContainPreviousLogIndexAndTerm(t *testing.T) {
-	follower := NewFollower(1, 1)
-	follower.Log = map[int]int{1: 1, 2: 1}
-	appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 2, PreviousLogIndex: 3, PreviousLogTerm: 1}
-
-	response := follower.AppendEntry(appendEntryCall)
-
-	if response.Success {
-		t.Error("Follower accepted AppendEntry call with PreviousLogIndex below its LogIndex")
 	}
 }
