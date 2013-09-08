@@ -5,41 +5,66 @@ import (
 	"testing"
 )
 
-func createFollower(id, term int) *Follower {
-	follower := NewFollower(id, term)
+func createFollower(term int) *Follower {
+	follower := NewFollower(term)
 	follower.Log = map[int]int{1: 1}
+	follower.Entries = []LogEntry{LogEntry{Term: 1, Index: 1, Item: "a"}}
 	return follower
+}
+
+func TestAppendEntriesHappyPath(t *testing.T) {
+	e.When("nothing is wrong with the request", t,
+		e.It("appends the new entry to the log", func(ex *e.Example) {
+			follower := createFollower(1)
+			call := AppendEntryCall{Term: 2,
+				PreviousEntry: LogEntry{Term: 1, Index: 1},
+				Entries: []LogEntry{
+					LogEntry{Index: 2, Term: 2, Item: "b"},
+				},
+			}
+
+			response := follower.AppendEntry(call)
+
+			ex.Expect(response.Success).ToBeTrue()
+			ex.Expect(response.Term).ToEqual(2)
+
+			newTermEntry := follower.Entries[1]
+
+			ex.Expect(newTermEntry.Term).ToEqual(2)
+			ex.Expect(newTermEntry.Item).ToEqual("b")
+		}),
+	)
 }
 
 func TestAppendEntriesWithBadClient(t *testing.T) {
 	e.Describe("rejected requests", t,
 		e.It("rejects requests with an old term", func(ex *e.Example) {
-			follower := createFollower(1, 5)
-			appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 3, PreviousLogIndex: 1, PreviousLogTerm: 1}
+			follower := createFollower(5)
+			call := AppendEntryCall{Term: 3, PreviousEntry: LogEntry{Term: 1, Index: 1}}
 
-			response := follower.AppendEntry(appendEntryCall)
+			response := follower.AppendEntry(call)
 
 			ex.Expect(response.Success).ToBeFalse()
 			ex.Expect(response.Term).ToEqual(5)
 		}),
 
 		e.It("rejects requests with a low previous log index", func(ex *e.Example) {
-			follower := createFollower(1, 2)
+			follower := createFollower(2)
 			follower.Log = map[int]int{1: 1, 2: 2}
-			appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 2, PreviousLogIndex: 2, PreviousLogTerm: 1}
+			call := AppendEntryCall{Term: 2, PreviousEntry: LogEntry{Term: 1, Index: 2}}
 
-			response := follower.AppendEntry(appendEntryCall)
+			response := follower.AppendEntry(call)
 
 			ex.Expect(response.Success).ToBeFalse()
 			ex.Expect(response.Term).ToEqual(2)
 		}),
 
 		e.It("rejects requests with a previous log index and non-matching previous log term", func(ex *e.Example) {
-			follower := createFollower(1, 1)
+			follower := createFollower(1)
 			follower.Log = map[int]int{1: 1, 2: 1}
-			appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 2, PreviousLogIndex: 3, PreviousLogTerm: 1}
+			call := AppendEntryCall{Term: 2, PreviousEntry: LogEntry{Term: 1, Index: 3}}
 
-			response := follower.AppendEntry(appendEntryCall)
+			response := follower.AppendEntry(call)
 
 			ex.Expect(response.Success).ToBeFalse()
 			ex.Expect(response.Term).ToEqual(1)
@@ -48,10 +73,10 @@ func TestAppendEntriesWithBadClient(t *testing.T) {
 }
 
 func TestAppendEntriesReturnsGreatestKnownTerm(t *testing.T) {
-	follower := createFollower(1, 1)
-	appendEntryCall := AppendEntryCall{LeaderId: 2, Term: 2, PreviousLogIndex: 1, PreviousLogTerm: 1}
+	follower := createFollower(1)
+	call := AppendEntryCall{Term: 2, PreviousEntry: LogEntry{Term: 1, Index: 1}}
 
-	response := follower.AppendEntry(appendEntryCall)
+	response := follower.AppendEntry(call)
 
 	if response.Term != 2 {
 		t.Error("Follower response did not update to include new term")

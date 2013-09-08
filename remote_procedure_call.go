@@ -1,10 +1,9 @@
 package seaturtles
 
 type AppendEntryCall struct {
-	LeaderId         int
-	Term             int
-	PreviousLogIndex int
-	PreviousLogTerm  int
+	Term          int
+	PreviousEntry LogEntry
+	Entries       []LogEntry
 }
 
 type AppendEntryResponse struct {
