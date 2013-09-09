@@ -14,7 +14,7 @@ func createFollower(term int) *Follower {
 
 func TestAppendEntriesHappyPath(t *testing.T) {
 	e.When("nothing is wrong with the request", t,
-		e.It("appends the new entry to the log", func(ex *e.Example) {
+		e.It("appends the new entry to the log", func(expect e.Expectation) {
 			follower := createFollower(1)
 			call := AppendEntryCall{Term: 2,
 				PreviousEntry: LogEntry{Term: 1, Index: 1},
@@ -25,49 +25,49 @@ func TestAppendEntriesHappyPath(t *testing.T) {
 
 			response := follower.AppendEntry(call)
 
-			ex.Expect(response.Success).ToBeTrue()
-			ex.Expect(response.Term).ToEqual(2)
+			expect(response.Success).ToBeTrue()
+			expect(response.Term).ToEqual(2)
 
 			newTermEntry := follower.Entries[1]
 
-			ex.Expect(newTermEntry.Term).ToEqual(2)
-			ex.Expect(newTermEntry.Item).ToEqual("b")
+			expect(newTermEntry.Term).ToEqual(2)
+			expect(newTermEntry.Item).ToEqual("b")
 		}),
 	)
 }
 
 func TestAppendEntriesWithBadClient(t *testing.T) {
 	e.Describe("rejected requests", t,
-		e.It("rejects requests with an old term", func(ex *e.Example) {
+		e.It("rejects requests with an old term", func(expect e.Expectation) {
 			follower := createFollower(5)
 			call := AppendEntryCall{Term: 3, PreviousEntry: LogEntry{Term: 1, Index: 1}}
 
 			response := follower.AppendEntry(call)
 
-			ex.Expect(response.Success).ToBeFalse()
-			ex.Expect(response.Term).ToEqual(5)
+			expect(response.Success).ToBeFalse()
+			expect(response.Term).ToEqual(5)
 		}),
 
-		e.It("rejects requests with a low previous log index", func(ex *e.Example) {
+		e.It("rejects requests with a low previous log index", func(expect e.Expectation) {
 			follower := createFollower(2)
 			follower.Log = map[int]int{1: 1, 2: 2}
 			call := AppendEntryCall{Term: 2, PreviousEntry: LogEntry{Term: 1, Index: 2}}
 
 			response := follower.AppendEntry(call)
 
-			ex.Expect(response.Success).ToBeFalse()
-			ex.Expect(response.Term).ToEqual(2)
+			expect(response.Success).ToBeFalse()
+			expect(response.Term).ToEqual(2)
 		}),
 
-		e.It("rejects requests with a previous log index and non-matching previous log term", func(ex *e.Example) {
+		e.It("rejects requests with a previous log index and non-matching previous log term", func(expect e.Expectation) {
 			follower := createFollower(1)
 			follower.Log = map[int]int{1: 1, 2: 1}
 			call := AppendEntryCall{Term: 2, PreviousEntry: LogEntry{Term: 1, Index: 3}}
 
 			response := follower.AppendEntry(call)
 
-			ex.Expect(response.Success).ToBeFalse()
-			ex.Expect(response.Term).ToEqual(1)
+			expect(response.Success).ToBeFalse()
+			expect(response.Term).ToEqual(1)
 		}),
 	)
 }
